@@ -44,8 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Scope;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -137,12 +135,11 @@ public class SqlUtils {
         try {
             jdbcTemplate().execute(sql);
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.error(e.toString(), e);
             throw new ServerException(e.getMessage());
         }
     }
 
-    @Cacheable(value = "query", keyGenerator = "keyGenerator", sync = true)
     public PaginateWithQueryColumns syncQuery4Paginate(String sql, Integer pageNo, Integer pageSize, Integer totalCount, Integer limit, Set<String> excludeColumns) throws Exception {
         if (null == pageNo || pageNo < 1) {
             pageNo = 0;
@@ -160,7 +157,6 @@ public class SqlUtils {
         return paginate;
     }
 
-    @CachePut(value = "query", key = "#sql")
     public List<Map<String, Object>> query4List(String sql, int limit) throws Exception {
         sql = filterAnnotate(sql);
         checkSensitiveSql(sql);
@@ -173,13 +169,12 @@ public class SqlUtils {
 
         if (isQueryLogEnable) {
             String md5 = MD5Util.getMD5(sql, true, 16);
-            sqlLogger.info("{} query for({} ms) total count: {} sql:{}", md5, System.currentTimeMillis() - before, list.size(), formatSql(sql));
+            sqlLogger.info("{} query for {} ms, total count:{} sql:{}", md5, System.currentTimeMillis() - before, list.size(), formatSql(sql));
         }
 
         return list;
     }
 
-    @CachePut(value = "query", keyGenerator = "keyGenerator")
     public PaginateWithQueryColumns query4Paginate(String sql, int pageNo, int pageSize, int totalCount, int limit, Set<String> excludeColumns) throws Exception {
         PaginateWithQueryColumns paginateWithQueryColumns = new PaginateWithQueryColumns();
         sql = filterAnnotate(sql);
@@ -240,7 +235,7 @@ public class SqlUtils {
 
         if (isQueryLogEnable) {
             String md5 = MD5Util.getMD5(sql + pageNo + pageSize + limit, true, 16);
-            sqlLogger.info("{} query for({} ms) total count: {}, page size: {}, sql:{}",
+            sqlLogger.info("{} query for {} ms, total count:{}, page size:{}, sql:{}",
                     md5, System.currentTimeMillis() - before,
                     paginateWithQueryColumns.getTotalCount(),
                     paginateWithQueryColumns.getPageSize(),
@@ -447,7 +442,7 @@ public class SqlUtils {
             }
 
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.error(e.toString(), e);
             return dbList;
         } finally {
             SourceUtils.releaseConnection(connection);
@@ -616,7 +611,7 @@ public class SqlUtils {
                 primaryKeys.add(rs.getString("COLUMN_NAME"));
             }
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.error(e.toString(), e);
         } finally {
             SourceUtils.closeResult(rs);
         }
@@ -647,7 +642,7 @@ public class SqlUtils {
                 columnList.add(new QueryColumn(rs.getString("COLUMN_NAME"), rs.getString("TYPE_NAME")));
             }
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.error(e.toString(), e);
         } finally {
             SourceUtils.closeResult(rs);
         }
@@ -699,13 +694,13 @@ public class SqlUtils {
     public void executeBatch(String sql, Set<QueryColumn> headers, List<Map<String, Object>> datas) throws ServerException {
 
         if (StringUtils.isEmpty(sql)) {
-            log.info("execute batch sql is EMPTY");
-            throw new ServerException("execute batch sql is EMPTY");
+            log.error("Execute batch sql is empty");
+            throw new ServerException("Execute batch sql is empty");
         }
 
         if (CollectionUtils.isEmpty(datas)) {
-            log.info("execute batch data is EMPTY");
-            throw new ServerException("execute batch data is EMPTY");
+            log.error("Execute batch data is empty");
+            throw new ServerException("Execute batch data is empty");
         }
 
         Connection connection = null;
@@ -807,12 +802,12 @@ public class SqlUtils {
                 connection.commit();
             }
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            log.error(e.toString(), e);
             if (null != connection) {
                 try {
                     connection.rollback();
                 } catch (SQLException se) {
-                    log.error(se.getMessage(), se);
+                    log.error(se.toString(), se);
                 }
             }
             throw new ServerException(e.getMessage(), e);
@@ -821,7 +816,7 @@ public class SqlUtils {
                 try {
                     pstmt.close();
                 } catch (SQLException e) {
-                    log.error(e.getMessage(), e);
+                    log.error(e.toString(), e);
                     throw new ServerException(e.getMessage(), e);
                 }
             }
